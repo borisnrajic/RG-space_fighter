@@ -169,6 +169,18 @@ int main() {
     // -------------------------
     Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
     Shader galaxyShader("resources/shaders/galaxy_skybox.vs", "resources/shaders/galaxy_skybox.fs");
+    Shader pyramidShader("resources/shaders/pyramid_shader.vs", "resources/shaders/pyramid_shader.fs");
+
+    float pyramidBaseVertices[] = {
+            //prvi trougao
+            -0.5, 0.0, 0.5,
+            0.5, 0.0, 0.5,
+            0.5, 0.0, -0.5,
+            //drugi trougao
+            0.5, 0.0, -0.5,
+            -0.5, 0.0, -0.5,
+            -0.5, 0.0, 0.5
+    };
 
 
     float skyboxVertices[] = {
@@ -215,6 +227,25 @@ int main() {
             -1.0f, -1.0f,  1.0f,
             1.0f, -1.0f,  1.0f
     };
+    unsigned int pyramidVBO, pyramidVAO;
+    glGenVertexArrays(1, &pyramidVAO);
+    glGenBuffers(1, &pyramidVBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(pyramidVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, pyramidVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(pyramidBaseVertices), pyramidBaseVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+    glBindVertexArray(0);
+
 
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
@@ -224,6 +255,11 @@ int main() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+
+    unsigned int pyramidTexture = loadTexture("resources/textures/container.jpg");
+
+
 
     //vector of cubemap component paths
     vector<std::string> cube_sides
@@ -309,17 +345,19 @@ int main() {
         ourShader.setMat4("view", view);
 
 
+        //pyramid rendering
+        pyramidShader.use();
+        glBindVertexArray(pyramidVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
         //skybox rendering
         glDepthMask(GL_FALSE);
 
         galaxyShader.use();
-
         glm::mat4 viewCube = glm::mat4(glm::mat3(view));
-
         glm::mat4 skyModel = glm::mat4(1.0f);
         skyModel = glm::translate(skyModel, glm::vec3(0.0f, 0.0f, 0.0f));
-
-
         galaxyShader.setMat4("view", viewCube);
         galaxyShader.setMat4("projection", projection);
         galaxyShader.setMat4("model", skyModel);
