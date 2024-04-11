@@ -16,6 +16,7 @@
 
 #include <iostream>
 
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
@@ -33,8 +34,8 @@ unsigned int loadCubemap(vector<std::string> faces);
 
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 900;
 
 // camera
 
@@ -62,8 +63,8 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 backpackPosition = glm::vec3(0.0f);
-    float backpackScale = 1.0f;
+    glm::vec3 backpackPosition = glm::vec3(10.0f, 0.0f, 0.0f);
+    float backpackScale = 0.2f;
     PointLight pointLight;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
@@ -167,19 +168,35 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    Shader ourShader("resources/shaders/model_lighting.vs", "resources/shaders/model_lighting.fs");
     Shader galaxyShader("resources/shaders/galaxy_skybox.vs", "resources/shaders/galaxy_skybox.fs");
     Shader pyramidShader("resources/shaders/pyramid_shader.vs", "resources/shaders/pyramid_shader.fs");
 
     float pyramidBaseVertices[] = {
             //prvi trougao
-            -0.5, 0.0, 0.5,
-            0.5, 0.0, 0.5,
-            0.5, 0.0, -0.5,
+            -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
+            0.5f, 0.0f, 0.5f, 1.0f, 0.0f,
+            0.5f, 0.0f, -0.5f, 1.0f, 1.0f,
             //drugi trougao
-            0.5, 0.0, -0.5,
-            -0.5, 0.0, -0.5,
-            -0.5, 0.0, 0.5
+            0.5f, 0.0f, -0.5f, 1.0f, 1.0f,
+            -0.5f, 0.0f, -0.5f, 0.0f, 1.0f,
+            -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
+            //vrh
+            -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
+            0.5f, 0.0f, 0.5f, 1.0f, 0.0f,
+            0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f,
+
+            0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
+            0.5f, 0.0f, -0.5f, 1.0f, 0.0f,
+            0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f,
+
+            0.5f, 0.0f, -0.5f, 0.0f, 0.0f,
+            -0.5f, 0.0f, -0.5f, 1.0f, 0.0f,
+            0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f,
+
+            -0.5f, 0.0f, -0.5f, 0.0f, 0.0f,
+            -0.5f, 0.0f, 0.5f, 1.0f, 0.0f,
+            0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f,
     };
 
 
@@ -227,24 +244,17 @@ int main() {
             -1.0f, -1.0f,  1.0f,
             1.0f, -1.0f,  1.0f
     };
+    //pyramid buffers
     unsigned int pyramidVBO, pyramidVAO;
     glGenVertexArrays(1, &pyramidVAO);
     glGenBuffers(1, &pyramidVBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
     glBindVertexArray(pyramidVAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, pyramidVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(pyramidBaseVertices), pyramidBaseVertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(pyramidBaseVertices), &pyramidBaseVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
 
     unsigned int skyboxVAO, skyboxVBO;
@@ -256,8 +266,8 @@ int main() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-
-    unsigned int pyramidTexture = loadTexture("resources/textures/container.jpg");
+    //load pyramid sides texture
+    unsigned int pyramidTexture = loadTexture(FileSystem::getPath("resources/textures/container.jpg").c_str());
 
 
 
@@ -279,6 +289,12 @@ int main() {
     //stbi_set_flip_vertically_on_load(true);
 
 
+
+    //configurating shaders
+
+    pyramidShader.use();
+    pyramidShader.setInt("texture1", 0);
+
     galaxyShader.use();
     galaxyShader.setInt("skybox", 0);
 
@@ -287,24 +303,14 @@ int main() {
 
 
 
-
-
-
-
-
-
-
-
-
-
     // load models
     // -----------
-    Model ourModel("resources/objects/backpack/backpack.obj");
+    Model ourModel("resources/objects/space_scout/untitled.obj");
     ourModel.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
+    pointLight.ambient = glm::vec3(12.0, 12.0, 12.0);
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
@@ -338,37 +344,38 @@ int main() {
 
 
         // view/projection transformations
+        ourShader.use();
+        glm::mat4 sceneModel = glm::mat4(1.0f);
+        glm::mat4 view = programState->camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
                                                 (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("model", sceneModel);
         ourShader.setMat4("view", view);
+        ourShader.setMat4("projection", projection);
+
 
 
         //pyramid rendering
         pyramidShader.use();
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
+        view = programState->camera.GetViewMatrix();
+        //model = glm::translate(model, glm::vec3(4.0f, 0.505f, 0.0f));
+        pyramidShader.setMat4("model", model);
+        pyramidShader.setMat4("view", view);
+        pyramidShader.setMat4("projection", projection);
         glBindVertexArray(pyramidVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-
-        //skybox rendering
-        glDepthMask(GL_FALSE);
-
-        galaxyShader.use();
-        glm::mat4 viewCube = glm::mat4(glm::mat3(view));
-        glm::mat4 skyModel = glm::mat4(1.0f);
-        skyModel = glm::translate(skyModel, glm::vec3(0.0f, 0.0f, 0.0f));
-        galaxyShader.setMat4("view", viewCube);
-        galaxyShader.setMat4("projection", projection);
-        galaxyShader.setMat4("model", skyModel);
-        // skybox cube
-        glBindVertexArray(skyboxVAO);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindTexture(GL_TEXTURE_2D, pyramidTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 18);
         glBindVertexArray(0);
 
-        glDepthMask(GL_TRUE);
+
+
+        //glClear(GL_DEPTH_BUFFER_BIT);
+
+
+
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
@@ -389,12 +396,41 @@ int main() {
 
 
         // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::mat4(1.0f);
         model = glm::translate(model,
                                programState->backpackPosition); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
+
+
+
+        //skybox rendering
+//        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
+
+        galaxyShader.use();
+        galaxyShader.setInt("skybox", 0);
+        glm::mat4 viewCube = glm::mat4(glm::mat3(programState->camera.GetViewMatrix()));
+        glm::mat4 skyModel = glm::mat4(1.0f);
+        skyModel = glm::translate(skyModel, glm::vec3(0.0f, 0.0f, 0.0f));
+        galaxyShader.setMat4("model", skyModel);
+        galaxyShader.setMat4("view", viewCube);
+        galaxyShader.setMat4("projection", projection);
+
+        // skybox cube
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+//        glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
+
+
+
+
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -432,7 +468,10 @@ void processInput(GLFWwindow *window) {
         programState->camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(RIGHT, deltaTime);
-}
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        programState->camera.Position.y -= 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        programState->camera.Position.y += 1.0f;}
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
