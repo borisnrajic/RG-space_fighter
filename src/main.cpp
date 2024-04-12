@@ -36,12 +36,15 @@ unsigned int loadCubemap(vector<std::string> faces);
 // settings
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
+bool blinn = false;
+bool blinnKeyPressed = false;
 
 // camera
 
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+
 
 // timing
 float deltaTime = 0.0f;
@@ -78,10 +81,11 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 scoutPosition = glm::vec3(30.0f, 0.0f, 0.0f);
+
+    glm::vec3 hoverPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 waspPosition = glm::vec3(1.0f, 2.0f, 1.0f);
 
-    float scoutScale = 3.0f;
+    float hoverScale = 1.0f;
     float waspScale = 1.0f;
 
     PointLight pointLight;
@@ -127,7 +131,7 @@ void ProgramState::LoadFromFile(std::string filename) {
 
 ProgramState *programState;
 
-void DrawImGui(ProgramState *programState);
+//void DrawImGui(ProgramState *programState);
 
 int main() {
     // glfw: initialize and configure
@@ -173,15 +177,17 @@ int main() {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
     // Init Imgui
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void) io;
+//    IMGUI_CHECKVERSION();
+//    ImGui::CreateContext();
+//    ImGuiIO &io = ImGui::GetIO();
+//    (void) io;
 
 
 
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330 core");
+//    ImGui_ImplGlfw_InitForOpenGL(window, true);
+//    ImGui_ImplOpenGL3_Init("#version 330 core");
+
+    programState->camera.MovementSpeed = 10.0f;
 
     // configure global opengl state
     // -----------------------------
@@ -278,7 +284,7 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-
+    //skybox buffers
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
@@ -326,8 +332,8 @@ int main() {
     // load models
     // -----------
     //stbi_set_flip_vertically_on_load(false);
-    Model ourModel("resources/objects/pharaoh/untitle5d.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+    Model sunflowerModel("resources/objects/bee_hover/untitled.obj");
+    sunflowerModel.SetShaderTextureNamePrefix("material.");
     //stbi_set_flip_vertically_on_load(true);
 
     stbi_set_flip_vertically_on_load(false);
@@ -338,10 +344,9 @@ int main() {
 
 
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
+    pointLight.position = glm::vec3(4.0f, 4.0f, 0.0f);
 
-//    pointLight.ambient = glm::vec3(2.0, 2.0, 2.0);
-    pointLight.ambient = glm::vec3(0.0);
+    pointLight.ambient = glm::vec3(2.0f);
 
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
@@ -352,8 +357,8 @@ int main() {
 
     SpotLight& spotLight = programState->spotLight;
     spotLight.position = glm::vec3(0.0f, 5.0, 0.0);
-    spotLight.ambient = glm::vec3(40.0f, 40.0f, 40.0f);
-    spotLight.diffuse = glm::vec3(5.0f, 5.0f, 5.0f);
+    spotLight.ambient = glm::vec3(10.0f, 10.0f, 10.0f);
+    spotLight.diffuse = glm::vec3(0.6f, 0.6f, 0.6f);
     spotLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     spotLight.constant = 1.0f;
     spotLight.linear = 0.09f;
@@ -438,6 +443,8 @@ int main() {
             glm::vec3(0.0f, -2.0f, 3.0f)
     };
 
+
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -463,7 +470,7 @@ int main() {
         glm::mat4 sceneModel = glm::mat4(1.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 300.0f);
         ourShader.setMat4("model", sceneModel);
         ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
@@ -494,7 +501,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 18);
         glBindVertexArray(0);
 
-        //pyramid 2 (rotating)
+        //pyramid 2 rendering (rotating)
         model = tmp;
         model = glm::translate(model, glm::vec3(0.0f, 0.5f, 0.0f));
         model = glm::rotate(model, currentFrame * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -513,10 +520,8 @@ int main() {
 
 
 
-        // don't forget to enable shader before setting uniforms
         ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 0.0f, 4.0 * sin(currentFrame));
-//        pointLight.position = glm::vec3(-1000.0f);
+        pointLight.position = glm::vec3(22.0f * cos(currentFrame), 1.0f, 22.0f * sin(currentFrame));
 
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
@@ -527,16 +532,15 @@ int main() {
         ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
+        ourShader.setBool("blinn", blinn);
 
         //spot light
-//        ourShader.setVec3("spotLight.position", glm::vec3(-1.0f,21.0f,17.0f));
-        //FLASHLIGHT VARIANT
-      ourShader.setVec3("spotLight.position", programState->camera.Position);
+        //FLASHLIGHT
+        ourShader.setVec3("spotLight.position", programState->camera.Position);
 
-//        ourShader.setVec3("spotLight.direction", glm::vec3(0.4f, 0.4f, 0.7f));
 
-        //FLASHLIGHT VARIANT
-      ourShader.setVec3("spotLight.direction", programState->camera.Front);
+        //FLASHLIGHT
+        ourShader.setVec3("spotLight.direction", programState->camera.Front);
 
         ourShader.setVec3("spotLight.ambient", spotLight.ambient);
         ourShader.setVec3("spotLight.diffuse", glm::vec3(0.85f, 0.25f, 0.0f));
@@ -547,24 +551,21 @@ int main() {
         ourShader.setFloat("spotLight.cutOff", spotLight.cutOff);
         ourShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
 
+
+
+
+        // render bee_hover
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, 15.0f * glm::vec3(cos(currentFrame), 0.0f, sin(currentFrame)));
+        model = glm::rotate(model, glm::radians(currentFrame * 58.0f), glm::vec3(0.0f, -1.0f, 0.0f));
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
-
-
-
-
-
-        // render the loaded model
-        model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->scoutPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->scoutScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        sunflowerModel.Draw(ourShader);
 
 
-
-        // render wasps
+        // render robo_wasps
 
         for(int i = 0; i < wasp_positions.size(); i++){
             model = glm::mat4(1.0f);
@@ -606,10 +607,8 @@ int main() {
 
 
 
-
-
-        if (programState->ImGuiEnabled)
-            DrawImGui(programState);
+//        if (programState->ImGuiEnabled)
+//            DrawImGui(programState);
 
 
 
@@ -647,7 +646,12 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         programState->camera.Position.y -= 1.0f;
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        programState->camera.Position.y += 1.0f;}
+        programState->camera.Position.y += 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+        blinn = !blinn;
+        blinnKeyPressed = true;
+    }
+}
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
@@ -682,40 +686,40 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     programState->camera.ProcessMouseScroll(yoffset);
 }
 
-void DrawImGui(ProgramState *programState) {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-
-    {
-        static float f = 0.0f;
-        ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->scoutPosition);
-        ImGui::DragFloat("Backpack scale", &programState->scoutScale, 0.05, 0.1, 4.0);
-
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
-        ImGui::End();
-    }
-
-    {
-        ImGui::Begin("Camera info");
-        const Camera& c = programState->camera;
-        ImGui::Text("Camera position: (%f, %f, %f)", c.Position.x, c.Position.y, c.Position.z);
-        ImGui::Text("(Yaw, Pitch): (%f, %f)", c.Yaw, c.Pitch);
-        ImGui::Text("Camera front: (%f, %f, %f)", c.Front.x, c.Front.y, c.Front.z);
-        ImGui::Checkbox("Camera mouse update", &programState->CameraMouseMovementUpdateEnabled);
-        ImGui::End();
-    }
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
+//void DrawImGui(ProgramState *programState) {
+//    ImGui_ImplOpenGL3_NewFrame();
+//    ImGui_ImplGlfw_NewFrame();
+//    ImGui::NewFrame();
+//
+//
+//    {
+//        static float f = 0.0f;
+//        ImGui::Begin("Hello window");
+//        ImGui::Text("Hello text");
+//        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
+//        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
+//        ImGui::DragFloat3("Backpack position", (float*)&programState->hoverPosition);
+//        ImGui::DragFloat("Backpack scale", &programState->hoverScale, 0.05, 0.1, 4.0);
+//
+//        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
+//        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
+//        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
+//        ImGui::End();
+//    }
+//
+//    {
+//        ImGui::Begin("Camera info");
+//        const Camera& c = programState->camera;
+//        ImGui::Text("Camera position: (%f, %f, %f)", c.Position.x, c.Position.y, c.Position.z);
+//        ImGui::Text("(Yaw, Pitch): (%f, %f)", c.Yaw, c.Pitch);
+//        ImGui::Text("Camera front: (%f, %f, %f)", c.Front.x, c.Front.y, c.Front.z);
+//        ImGui::Checkbox("Camera mouse update", &programState->CameraMouseMovementUpdateEnabled);
+//        ImGui::End();
+//    }
+//
+//    ImGui::Render();
+//    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+//}
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
