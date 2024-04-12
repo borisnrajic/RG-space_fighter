@@ -1,0 +1,8 @@
+Model Information:
+* title:	Robo Wasp
+* source:	https://sketchfab.com/3d-models/robo-wasp-527c4b30ee7f40bbbb8ed64475b6c835
+* author:	Vetech82 (https://sketchfab.com/Vetech82)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

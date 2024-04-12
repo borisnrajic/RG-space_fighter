@@ -96,5 +96,8 @@ void main()
     vec3 result = CalcPointLight(pointLight, normal, FragPos, viewDir);
     result += CalculateSpotLight(spotLight, normal, FragPos, viewDir);
 
+    if(result.r > 0.9 && result.g > 0.9 && result.b > 0.9)
+        discard;
+
     FragColor = vec4(result, 1.0);
 }

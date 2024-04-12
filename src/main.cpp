@@ -79,7 +79,11 @@ struct ProgramState {
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
     glm::vec3 scoutPosition = glm::vec3(30.0f, 0.0f, 0.0f);
+    glm::vec3 waspPosition = glm::vec3(1.0f, 2.0f, 1.0f);
+
     float scoutScale = 3.0f;
+    float waspScale = 1.0f;
+
     PointLight pointLight;
     SpotLight spotLight;
 
@@ -285,9 +289,7 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     //load pyramid sides texture
-    unsigned int pyramidTexture = loadTexture(FileSystem::getPath("resources/textures/techTexture.jpg").c_str());
-
-
+    unsigned int pyramidTexture = loadTexture(FileSystem::getPath("resources/textures/honeycomb.jpg").c_str());
 
     //vector of cubemap component paths
     vector<std::string> cube_sides
@@ -324,20 +326,22 @@ int main() {
     // load models
     // -----------
     //stbi_set_flip_vertically_on_load(false);
-    Model ourModel("resources/objects/pharaoh/untitled.obj");
+    Model ourModel("resources/objects/pharaoh/untitle5d.obj");
     ourModel.SetShaderTextureNamePrefix("material.");
     //stbi_set_flip_vertically_on_load(true);
 
-
-
+    stbi_set_flip_vertically_on_load(false);
+    Model wasp("resources/objects/robo_wasp/untitled.obj");
+    wasp.SetShaderTextureNamePrefix("material.");
+    stbi_set_flip_vertically_on_load(true);
 
 
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
 
-    pointLight.ambient = glm::vec3(5.0, 5.0, 5.0);
-//    pointLight.ambient = glm::vec3(0.0);
+//    pointLight.ambient = glm::vec3(2.0, 2.0, 2.0);
+    pointLight.ambient = glm::vec3(0.0);
 
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
@@ -348,13 +352,13 @@ int main() {
 
     SpotLight& spotLight = programState->spotLight;
     spotLight.position = glm::vec3(0.0f, 5.0, 0.0);
-    spotLight.ambient = glm::vec3(10.0f, 10.0f, 10.0f);
-    spotLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    spotLight.ambient = glm::vec3(40.0f, 40.0f, 40.0f);
+    spotLight.diffuse = glm::vec3(5.0f, 5.0f, 5.0f);
     spotLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     spotLight.constant = 1.0f;
     spotLight.linear = 0.09f;
     spotLight.quadratic = 0.032f;
-    spotLight.cutOff = glm::cos(glm::radians(10.0f));
+    spotLight.cutOff = glm::cos(glm::radians(5.0f));
     spotLight.outerCutOff = glm::cos(glm::radians(15.0f));
 
 
@@ -362,6 +366,77 @@ int main() {
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+
+    vector <glm::vec3> wasp_positions = {
+            glm::vec3(5.0f, 1.0f, 3.0f),
+            glm::vec3(5.0f, 2.0f, 3.0f),
+            glm::vec3(-3.0f, 3.0f, 3.0f),
+            glm::vec3(0.0f, 2.0f, -3.0f),
+            glm::vec3(-2.0f, 1.0f, 4.0f),
+            glm::vec3(3.0f, 3.4f, -5.0f),
+            glm::vec3(2.0f, 5.0f, 3.0f),
+            glm::vec3(-5.0f, 5.0f, -3.0f),
+            glm::vec3(3.0f, 1.0f, 1.0f),
+            glm::vec3(1.0f, 2.0f, 3.0f),
+            glm::vec3(-2.0f, 8.0f, 3.0f),
+            glm::vec3(3.0f, 1.0f, -3.0f),
+            glm::vec3(-4.0f, 4.0f, 4.0f),
+            glm::vec3(2.0f, 1.4f, -5.0f),
+            glm::vec3(1.0f, 3.0f, 3.0f),
+            glm::vec3(3.0f, 5.0f, -3.0f),
+            glm::vec3(1.0f, 1.0f, 3.0f),
+            glm::vec3(-5.0f, 2.0f, 1.0f),
+            glm::vec3(-2.0f, 3.0f, 3.0f),
+            glm::vec3(1.0f, 4.0f, -2.0f),
+            glm::vec3(-6.0f, 2.0f, 1.0f),
+            glm::vec3(5.0f, 1.4f, -3.0f),
+            glm::vec3(3.0f, 6.0f, 3.0f),
+            glm::vec3(-4.0f, 5.0f, -4.0f),
+            glm::vec3(1.0f, 1.0f, 5.0f),
+            glm::vec3(2.0f, 2.0f, 3.0f),
+            glm::vec3(-3.0f, 1.0f, 2.0f),
+            glm::vec3(3.0f, 7.0f, -4.0f),
+            glm::vec3(-4.0f, 4.0f, 4.0f),
+            glm::vec3(2.0f, 1.4f, -5.0f),
+            glm::vec3(1.0f, 3.0f, 3.0f),
+            glm::vec3(2.0f, 15.0f, -3.0f)
+    };
+
+    vector <glm::vec3> wasp_rotations = {
+            glm::vec3(-1.0f, 5.0f, 1.0f),
+            glm::vec3(0.0f, -4.0f, 1.0f),
+            glm::vec3(1.0f, 3.0f, 0.3f),
+            glm::vec3(0.0f, -4.0f, 2.0f),
+            glm::vec3(1.0f, 3.0f, -5.0f),
+            glm::vec3(-1.0, -5.0f, 1.0f),
+            glm::vec3(3.0f, 5.0f, -0.3f),
+            glm::vec3(0.0f, -2.0f, 3.0f),
+            glm::vec3(-1.0f, 5.0f, 1.0f),
+            glm::vec3(0.0f, -4.0f, 1.0f),
+            glm::vec3(1.0f, 3.0f, 0.3f),
+            glm::vec3(0.0f, -4.0f, 2.0f),
+            glm::vec3(1.0f, 3.0f, -5.0f),
+            glm::vec3(-1.0, -5.0f, 1.0f),
+            glm::vec3(3.0f, 5.0f, -0.3f),
+            glm::vec3(0.0f, -2.0f, 3.0f),
+            glm::vec3(-1.0f, 5.0f, 1.0f),
+            glm::vec3(0.0f, -4.0f, 1.0f),
+            glm::vec3(1.0f, 3.0f, 0.3f),
+            glm::vec3(0.0f, -4.0f, 2.0f),
+            glm::vec3(1.0f, 3.0f, -5.0f),
+            glm::vec3(-1.0, -5.0f, 1.0f),
+            glm::vec3(3.0f, 5.0f, -0.3f),
+            glm::vec3(0.0f, -2.0f, 3.0f),
+            glm::vec3(-1.0f, 5.0f, 1.0f),
+            glm::vec3(0.0f, -4.0f, 1.0f),
+            glm::vec3(1.0f, 3.0f, 0.3f),
+            glm::vec3(0.0f, -4.0f, 2.0f),
+            glm::vec3(1.0f, 3.0f, -5.0f),
+            glm::vec3(-1.0, -5.0f, 1.0f),
+            glm::vec3(3.0f, 5.0f, -0.3f),
+            glm::vec3(0.0f, -2.0f, 3.0f)
+    };
 
     // render loop
     // -----------
@@ -397,11 +472,11 @@ int main() {
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
 
-        //pyramid rendering
+        //pyramid 1 rendering (rotating)
 
         pyramidShader.use();
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::scale(model, glm::vec3(45.0f, 45.0f, 45.0f));
+        model = glm::scale(model, glm::vec3(20.0f, 20.0f, 20.0f));
         view = programState->camera.GetViewMatrix();
         //model = glm::translate(model, glm::vec3(4.0f, 0.505f, 0.0f));
         pyramidShader.setMat4("view", view);
@@ -421,7 +496,7 @@ int main() {
 
         //pyramid 2 (rotating)
         model = tmp;
-        model = glm::translate(model, glm::vec3(0.0f, 0.2f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, 0.5f, 0.0f));
         model = glm::rotate(model, currentFrame * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         pyramidShader.setMat4("model", model);
         glBindVertexArray(pyramidVAO);
@@ -487,6 +562,22 @@ int main() {
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
 
+
+
+        // render wasps
+
+        for(int i = 0; i < wasp_positions.size(); i++){
+            model = glm::mat4(1.0f);
+            float sign[] = {-1.0f, 1.0f};
+            model = glm::translate(model,wasp_positions[i]);
+            wasp_rotations[i] += sign[rand() % 2] * glm::vec3(currentFrame * (rand() % 2),
+                                           currentFrame * (rand() % 2),
+                                           currentFrame * (rand() % 2));
+            model = glm::rotate(model, glm::radians(30.0f), wasp_rotations[i]);
+            model = glm::scale(model, glm::vec3(programState->waspScale));
+            ourShader.setMat4("model", model);
+            wasp.Draw(ourShader);
+        }
 
 
 
