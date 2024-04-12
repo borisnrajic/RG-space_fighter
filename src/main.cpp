@@ -58,14 +58,31 @@ struct PointLight {
     float quadratic;
 };
 
+struct SpotLight {
+    glm::vec3 position;
+    glm::vec3 direction;
+    float cutOff;
+    float outerCutOff;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 backpackPosition = glm::vec3(10.0f, 0.0f, 0.0f);
-    float backpackScale = 0.2f;
+    glm::vec3 scoutPosition = glm::vec3(30.0f, 0.0f, 0.0f);
+    float scoutScale = 3.0f;
     PointLight pointLight;
+    SpotLight spotLight;
+
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -172,16 +189,17 @@ int main() {
     Shader galaxyShader("resources/shaders/galaxy_skybox.vs", "resources/shaders/galaxy_skybox.fs");
     Shader pyramidShader("resources/shaders/pyramid_shader.vs", "resources/shaders/pyramid_shader.fs");
 
+
     float pyramidBaseVertices[] = {
-            //prvi trougao
-            -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
+            //prvi trougao baze
+            0.5f, 0.0f, -0.5f, 1.0f, 1.0f,
             0.5f, 0.0f, 0.5f, 1.0f, 0.0f,
-            0.5f, 0.0f, -0.5f, 1.0f, 1.0f,
-            //drugi trougao
-            0.5f, 0.0f, -0.5f, 1.0f, 1.0f,
-            -0.5f, 0.0f, -0.5f, 0.0f, 1.0f,
             -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
-            //vrh
+            //drugi trougao baze
+            -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
+            -0.5f, 0.0f, -0.5f, 0.0f, 1.0f,
+            0.5f, 0.0f, -0.5f, 1.0f, 1.0f,
+            //strane piramide
             -0.5f, 0.0f, 0.5f, 0.0f, 0.0f,
             0.5f, 0.0f, 0.5f, 1.0f, 0.0f,
             0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f,
@@ -196,7 +214,7 @@ int main() {
 
             -0.5f, 0.0f, -0.5f, 0.0f, 0.0f,
             -0.5f, 0.0f, 0.5f, 1.0f, 0.0f,
-            0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f,
+            0.0f, sqrt(2.0f)/2.0f, 0.0f, 0.5f, 1.0f
     };
 
 
@@ -267,7 +285,7 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     //load pyramid sides texture
-    unsigned int pyramidTexture = loadTexture(FileSystem::getPath("resources/textures/container.jpg").c_str());
+    unsigned int pyramidTexture = loadTexture(FileSystem::getPath("resources/textures/techTexture.jpg").c_str());
 
 
 
@@ -305,18 +323,40 @@ int main() {
 
     // load models
     // -----------
-    Model ourModel("resources/objects/space_scout/untitled.obj");
+    //stbi_set_flip_vertically_on_load(false);
+    Model ourModel("resources/objects/pharaoh/untitled.obj");
     ourModel.SetShaderTextureNamePrefix("material.");
+    //stbi_set_flip_vertically_on_load(true);
+
+
+
+
+
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(12.0, 12.0, 12.0);
+
+    pointLight.ambient = glm::vec3(5.0, 5.0, 5.0);
+//    pointLight.ambient = glm::vec3(0.0);
+
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
+
+    SpotLight& spotLight = programState->spotLight;
+    spotLight.position = glm::vec3(0.0f, 5.0, 0.0);
+    spotLight.ambient = glm::vec3(10.0f, 10.0f, 10.0f);
+    spotLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    spotLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+    spotLight.constant = 1.0f;
+    spotLight.linear = 0.09f;
+    spotLight.quadratic = 0.032f;
+    spotLight.cutOff = glm::cos(glm::radians(10.0f));
+    spotLight.outerCutOff = glm::cos(glm::radians(15.0f));
+
 
 
 
@@ -353,33 +393,56 @@ int main() {
         ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
 
-
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
 
         //pyramid rendering
+
         pyramidShader.use();
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
+        model = glm::scale(model, glm::vec3(45.0f, 45.0f, 45.0f));
         view = programState->camera.GetViewMatrix();
         //model = glm::translate(model, glm::vec3(4.0f, 0.505f, 0.0f));
-        pyramidShader.setMat4("model", model);
         pyramidShader.setMat4("view", view);
         pyramidShader.setMat4("projection", projection);
+
+        glm::mat4 tmp = model;
+
+        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, currentFrame * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        pyramidShader.setMat4("model", model);
         glBindVertexArray(pyramidVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, pyramidTexture);
         glDrawArrays(GL_TRIANGLES, 0, 18);
         glBindVertexArray(0);
 
+        //pyramid 2 (rotating)
+        model = tmp;
+        model = glm::translate(model, glm::vec3(0.0f, 0.2f, 0.0f));
+        model = glm::rotate(model, currentFrame * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        pyramidShader.setMat4("model", model);
+        glBindVertexArray(pyramidVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, pyramidTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 18);
+        glBindVertexArray(0);
+
+        glDisable(GL_CULL_FACE);
 
 
-        //glClear(GL_DEPTH_BUFFER_BIT);
+
 
 
 
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 0.0f, 4.0 * sin(currentFrame));
+//        pointLight.position = glm::vec3(-1000.0f);
+
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
         ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
@@ -390,6 +453,27 @@ int main() {
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
 
+        //spot light
+//        ourShader.setVec3("spotLight.position", glm::vec3(-1.0f,21.0f,17.0f));
+        //FLASHLIGHT VARIANT
+      ourShader.setVec3("spotLight.position", programState->camera.Position);
+
+//        ourShader.setVec3("spotLight.direction", glm::vec3(0.4f, 0.4f, 0.7f));
+
+        //FLASHLIGHT VARIANT
+      ourShader.setVec3("spotLight.direction", programState->camera.Front);
+
+        ourShader.setVec3("spotLight.ambient", spotLight.ambient);
+        ourShader.setVec3("spotLight.diffuse", glm::vec3(0.85f, 0.25f, 0.0f));
+        ourShader.setVec3("spotLight.specular", spotLight.specular);
+        ourShader.setFloat("spotLight.constant", spotLight.constant);
+        ourShader.setFloat("spotLight.linear", spotLight.linear);
+        ourShader.setFloat("spotLight.quadratic", spotLight.quadratic);
+        ourShader.setFloat("spotLight.cutOff", spotLight.cutOff);
+        ourShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
+
+        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
 
 
 
@@ -398,10 +482,11 @@ int main() {
         // render the loaded model
         model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+                               programState->scoutPosition); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(programState->scoutScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
+
 
 
 
@@ -518,8 +603,8 @@ void DrawImGui(ProgramState *programState) {
         ImGui::Text("Hello text");
         ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
         ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
+        ImGui::DragFloat3("Backpack position", (float*)&programState->scoutPosition);
+        ImGui::DragFloat("Backpack scale", &programState->scoutScale, 0.05, 0.1, 4.0);
 
         ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
         ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
