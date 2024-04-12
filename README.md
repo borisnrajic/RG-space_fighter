@@ -31,6 +31,8 @@ Skelet koriscen u projektu je https://github.com/matf-racunarska-grafika/project
 
 
 # Galerija:
+<img src="resources/screenshots/Screenshot_4.png">
+<img src="resources/screenshots/Screenshot_5.png">
 <img src="resources/screenshots/Screenshot_1.png">
 <img src="resources/screenshots/Screenshot_2.png">
 <img src="resources/screenshots/Screenshot_3.png">
